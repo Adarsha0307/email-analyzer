@@ -1,4 +1,4 @@
-# Email Analyzer
+# Email + URL Analyzer
 
 A standalone cybersecurity analyzer for reviewing suspicious email content, URLs, and password strength. The application runs without login or PostgreSQL and includes local fallback analysis when optional API keys are not configured.
 
