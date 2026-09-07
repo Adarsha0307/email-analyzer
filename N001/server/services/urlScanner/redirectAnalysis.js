@@ -12,14 +12,26 @@ const ALLOWED_REDIRECT_DOMAIN_SUFFIXES = [
   // Example: '.example.com',
 ];
 
+function hasRedirectAllowlistPolicy() {
+  return ALLOWED_REDIRECT_HOSTS.size > 0 || ALLOWED_REDIRECT_DOMAIN_SUFFIXES.length > 0;
+}
+
 function isAllowedHostname(hostname) {
   const value = String(hostname || '').toLowerCase().replace(/\.$/, '');
   if (!value) return false;
   if (ALLOWED_REDIRECT_HOSTS.has(value)) return true;
-  return ALLOWED_REDIRECT_DOMAIN_SUFFIXES.some((suffix) => value.endsWith(suffix));
+  return ALLOWED_REDIRECT_DOMAIN_SUFFIXES.some((suffix) => {
+    const normalizedSuffix = String(suffix || '').toLowerCase().replace(/\.$/, '');
+    if (!normalizedSuffix) return false;
+    const bare = normalizedSuffix.startsWith('.') ? normalizedSuffix.slice(1) : normalizedSuffix;
+    return value === bare || value.endsWith(`.${bare}`);
+  });
 }
 
 async function assertPublicTarget(url) {
+  if (!hasRedirectAllowlistPolicy()) {
+    throw new Error('Redirect analysis outbound policy is not configured.');
+  }
   const parsed = new URL(url);
   if (!['http:', 'https:'].includes(parsed.protocol) || isLocalHostname(parsed.hostname)) {
     throw new Error('Redirect targets a blocked local or unsupported address.');
