@@ -3,11 +3,29 @@ import { isLocalHostname, isPrivateIpAddress } from './normalizer.js';
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 const MAX_REDIRECTS = 10;
+const ALLOWED_REDIRECT_HOSTS = new Set([
+  // Populate with exact trusted hosts for outbound scanning.
+  // Example: 'example.com',
+]);
+const ALLOWED_REDIRECT_DOMAIN_SUFFIXES = [
+  // Populate with trusted parent domains.
+  // Example: '.example.com',
+];
+
+function isAllowedHostname(hostname) {
+  const value = String(hostname || '').toLowerCase().replace(/\.$/, '');
+  if (!value) return false;
+  if (ALLOWED_REDIRECT_HOSTS.has(value)) return true;
+  return ALLOWED_REDIRECT_DOMAIN_SUFFIXES.some((suffix) => value.endsWith(suffix));
+}
 
 async function assertPublicTarget(url) {
   const parsed = new URL(url);
   if (!['http:', 'https:'].includes(parsed.protocol) || isLocalHostname(parsed.hostname)) {
     throw new Error('Redirect targets a blocked local or unsupported address.');
+  }
+  if (!isAllowedHostname(parsed.hostname)) {
+    throw new Error('Redirect targets a hostname outside the allowed outbound policy.');
   }
   const addresses = await dns.lookup(parsed.hostname, { all: true });
   if (addresses.some(({ address }) => isPrivateIpAddress(address))) {
