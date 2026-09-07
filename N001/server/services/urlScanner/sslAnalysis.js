@@ -4,7 +4,7 @@ export function checkSslCertificate(hostname, port = 443, timeout = 8000) {
   return new Promise((resolve) => {
     const findings = [];
     let riskScore = 0;
-    const socket = tls.connect({ host: hostname, port, servername: hostname, rejectUnauthorized: false, timeout });
+    const socket = tls.connect({ host: hostname, port, servername: hostname, rejectUnauthorized: true, timeout });
     let settled = false;
 
     function finish(result) {
