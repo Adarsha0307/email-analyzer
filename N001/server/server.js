@@ -16,6 +16,14 @@ const port = Number(process.env.PORT) || 4100;
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(express.json({ limit: '1mb' }));
+
+const frontendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+});
+
 app.use('/api/analyze', rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 120,
@@ -32,7 +40,7 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'API endpoint not fo
 
 if (fs.existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
-  app.get('/{*path}', (req, res) => res.sendFile(path.join(frontendDist, 'index.html')));
+  app.get('/{*path}', frontendLimiter, (req, res) => res.sendFile(path.join(frontendDist, 'index.html')));
 }
 
 app.use((error, req, res, next) => {
